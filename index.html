@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-TRONIK - Katalog List Harga & Paket</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- PapaParse CDN (CSV Parser) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased">
+
+    <div id="app" class="flex-1 flex flex-col max-w-5xl w-full mx-auto p-3 sm:p-6">
+        
+        <!-- Header Z-TRONIK (Khusus Pelanggan) -->
+        <header class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-5 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-gradient-to-tr from-cyan-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white text-2xl font-black tracking-wider">
+                        Z
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                            Z-TRONIK
+                            <span class="bg-cyan-500/20 text-cyan-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-cyan-500/30">KATALOG ONLINE</span>
+                        </h1>
+                        <p class="text-slate-400 text-xs sm:text-sm font-medium">Daftar Harga Pulsa, Paket Data & Topup Game Terupdate</p>
+                    </div>
+                </div>
+
+                <!-- Tombol Refresh Harga Sahaja -->
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button 
+                        @click="fetchDataFromSheet" 
+                        :disabled="isLoading"
+                        class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-lg shadow-cyan-600/20">
+                        <i class="fa-solid fa-rotate text-white" :class="{'fa-spin': isLoading}"></i>
+                        <span>{{ isLoading ? 'Memuat Data...' : 'Refresh Harga' }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="lastUpdated" class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Sistem Terhubung Live
+                </span>
+                <span>Terakhir diperbarui: {{ lastUpdated }}</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
+            
+            <!-- Input Nomor HP & Auto Detect Provider -->
+            <div class="md:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 shadow-lg relative">
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-mobile-screen-button text-cyan-400 mr-1.5"></i> Masukkan Nomor HP</span>
+                    <span v-if="detectedProvider" class="text-cyan-400 font-bold bg-cyan-950/80 border border-cyan-800 px-2 py-0.5 rounded text-[10px]">
+                        PROV: {{ detectedProvider }}
+                    </span>
+                </label>
+                <div class="relative flex items-center">
+                    <input 
+                        type="tel" 
+                        v-model="phoneNumber" 
+                        @input="detectProvider"
+                        placeholder="Contoh: 0812xxxx" 
+                        class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm font-mono font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition">
+                    <button 
+                        v-if="phoneNumber" 
+                        @click="clearPhone" 
+                        class="absolute right-3 text-slate-500 hover:text-slate-300 text-xs p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Pencarian Nama / Kode -->
+            <div class="md:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 shadow-lg">
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    <i class="fa-solid fa-magnifying-glass text-cyan-400 mr-1.5"></i> Cari Produk / Paket
+                </label>
+                <div class="relative flex items-center">
+                    <input 
+                        type="text" 
+                        v-model="searchQuery" 
+                        placeholder="Ketik kode atau nama paket..." 
+                        class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition">
+                    <button 
+                        v-if="searchQuery" 
+                        @click="searchQuery = ''" 
+                        class="absolute right-3 text-slate-500 hover:text-slate-300 text-xs p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mb-6">
+            <div class="flex flex-wrap items-center gap-2">
+                <button 
+                    v-for="cat in categories" 
+                    :key="cat.id"
+                    @click="selectedCategory = cat.id"
+                    :class="selectedCategory === cat.id ? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-600/30 border-cyan-500' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border-slate-800'"
+                    class="px-3.5 py-2 rounded-xl text-xs font-medium border transition-all duration-150 flex items-center gap-2">
+                    <i :class="cat.icon" class="text-xs"></i>
+                    <span class="whitespace-normal text-left leading-tight">{{ cat.name }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Banner Alert Provider Terdeteksi -->
+        <div v-if="detectedProvider" class="mb-5 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-800/80 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-signal text-sm"></i>
+                </div>
+                <div>
+                    <div class="text-[11px] text-cyan-300 uppercase font-semibold tracking-wider">Provider Terdeteksi</div>
+                    <div class="text-sm font-extrabold text-white">{{ detectedProvider }}</div>
+                </div>
+            </div>
+            <button @click="clearPhone" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                Tampilkan Semua
+            </button>
+        </div>
+
+        <main class="flex-1 space-y-6">
+
+            <!-- State Loading -->
+            <div v-if="isLoading && filteredProducts.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center my-8">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-cyan-400 mb-3"></i>
+                <p class="text-slate-300 font-semibold text-sm">Memuat Data Katalog Harga...</p>
+            </div>
+
+            <!-- State Tidak Ada Produk Found -->
+            <div v-else-if="groupedProducts.length === 0" class="bg-slate-900/60 border border-slate-800 rounded-2xl p-10 text-center my-4">
+                <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
+                <h3 class="text-slate-300 font-bold text-base mb-1">Tidak Ada Produk Ditemukan</h3>
+                <p class="text-slate-500 text-xs">Coba ubah nomor HP, pencarian, atau pilih kategori lainnya.</p>
+            </div>
+
+            <!-- Grouping Provider -->
+            <div v-else v-for="group in groupedProducts" :key="group.provider" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                
+                <!-- Header Nama Provider -->
+                <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
+                        <h2 class="font-black text-sm sm:text-base text-white tracking-wide uppercase">{{ group.provider }}</h2>
+                    </div>
+                    <span class="text-[11px] bg-slate-950 text-slate-400 font-mono px-2.5 py-1 rounded-full border border-slate-800">
+                        {{ group.totalCount }} Produk
+                    </span>
+                </div>
+
+                <div class="p-3 sm:p-4 space-y-5">
+                    <!-- Judul Nama Paket di dalam Provider -->
+                    <div v-for="subGroup in group.subGroups" :key="subGroup.judulPaket" class="bg-slate-950/60 rounded-xl border border-slate-800/80 overflow-hidden">
+                        
+                        <div class="bg-slate-900/80 px-3.5 py-2 border-b border-slate-800/80 flex items-center justify-between">
+                            <h3 class="font-bold text-xs sm:text-sm text-cyan-300 flex items-center gap-2 whitespace-normal break-words">
+                                <i class="fa-solid fa-layer-group text-cyan-500 text-xs"></i>
+                                <span>{{ subGroup.judulPaket }}</span>
+                            </h3>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-900/30">
+                                        <th class="py-2.5 px-3 w-20 sm:w-24">Kode</th>
+                                        <th class="py-2.5 px-3">Nama Produk</th>
+                                        <th class="py-2.5 px-3 w-24 text-center">Status</th>
+                                        <th class="py-2.5 px-3 w-28 sm:w-32 text-right">Harga Jual</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/50 text-xs sm:text-sm">
+                                    <tr v-for="item in subGroup.items" :key="item.kode" class="hover:bg-slate-800/30 transition">
+                                        <td class="py-2.5 px-3 font-mono font-bold text-slate-300 text-xs whitespace-nowrap">
+                                            {{ item.kode }}
+                                        </td>
+                                        
+                                        <!-- Nama Produk (Teks Penuh, Tidak Terpotong) -->
+                                        <td class="py-2.5 px-3 text-slate-100 font-medium whitespace-normal break-words leading-snug">
+                                            {{ item.namaProduk }}
+                                        </td>
+
+                                        <!-- Status Badge (OPEN / GANGGUAN) -->
+                                        <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                            <span 
+                                                v-if="(item.status || '').toLowerCase() === 'open'" 
+                                                class="inline-flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                                OPEN
+                                            </span>
+                                            <span 
+                                                v-else 
+                                                class="inline-flex items-center gap-1 bg-rose-950/80 text-rose-400 border border-rose-800/80 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                                GANGGUAN
+                                            </span>
+                                        </td>
+
+                                        <!-- Harga Jual -->
+                                        <td class="py-2.5 px-3 text-right font-extrabold text-cyan-400 font-mono whitespace-nowrap">
+                                            {{ formatRupiah(item.hargaJual) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- Footer Footer Z-TRONIK -->
+        <footer class="mt-8 pt-4 border-t border-slate-900 text-center text-xs text-slate-500 space-y-1">
+            <p class="font-bold text-slate-400">Z-TRONIK — Layanan Isu Pulsa & Paket Data Cepat</p>
+            <p>Harga & Status dapat berubah sewaktu-waktu.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // TEMPATKAN LINK GOOGLE SHEET CSV ANDA DI BAWAH INI JIKA SUDAH DIPUBLIKASIKAN
+        // Contoh: 'https://docs.google.com/spreadsheets/d/e/2PACX-1v.../pub?output=csv'
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSkQnChUO_agW4OQfm4fTA7hNE6tU1uPZEhEp8Y3LD0b1spjhxHXg3kkC1WbSj58V2E-8nqHduihwU-/pubhtml'; 
+
+        // Sample Data Bawaan jika belum ada link Google Sheet
+        const DEFAULT_SAMPLE_PRODUCTS = [
+            // TELKOMSEL
+            { kode: 'S5', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
+            { kode: 'S10', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 10.000', status: 'OPEN', hargaJual: 12000, kategori: 'pulsa' },
+            { kode: 'S25', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 25.000', status: 'OPEN', hargaJual: 27000, kategori: 'pulsa' },
+            { kode: 'S50', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 50.000', status: 'OPEN', hargaJual: 52000, kategori: 'pulsa' },
+            { kode: 'TS1', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 3GB / 30 Hari', status: 'OPEN', hargaJual: 22000, kategori: 'data' },
+            { kode: 'TS2', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 7GB / 30 Hari', status: 'OPEN', hargaJual: 38000, kategori: 'data' },
+            { kode: 'TS3', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 15GB / 30 Hari', status: 'GANGGUAN', hargaJual: 58000, kategori: 'data' },
+
+            // INDOSAT
+            { kode: 'I5', provider: 'INDOSAT OOREDOO', judulPaket: 'Pulsa Reguler Indosat', namaProduk: 'Pulsa Indosat 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
+            { kode: 'I10', provider: 'INDOSAT OOREDOO', judulPaket: 'Pulsa Reguler Indosat', namaProduk: 'Pulsa Indosat 10.000', status: 'OPEN', hargaJual: 12000, kategori: 'pulsa' },
+            { kode: 'FID3', provider: 'INDOSAT OOREDOO', judulPaket: 'Freedom Internet Indosat', namaProduk: 'Freedom Internet 3GB / 30 Hari Full Kuota', status: 'OPEN', hargaJual: 18000, kategori: 'data' },
+            { kode: 'FID7', provider: 'INDOSAT OOREDOO', judulPaket: 'Freedom Internet Indosat', namaProduk: 'Freedom Internet 7GB / 30 Hari Full Kuota', status: 'OPEN', hargaJual: 31000, kategori: 'data' },
+
+            // XL & AXIS
+            { kode: 'X5', provider: 'XL AXIATA', judulPaket: 'Pulsa Reguler XL', namaProduk: 'Pulsa XL 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
+            { kode: 'X10', provider: 'XL AXIATA', judulPaket: 'Pulsa Reguler XL', namaProduk: 'Pulsa XL 10.000', status: 'OPEN', hargaJual: 12000, kategori: 'pulsa' },
+            { kode: 'AX5', provider: 'AXIS', judulPaket: 'Pulsa Reguler Axis', namaProduk: 'Pulsa Axis 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
+            { kode: 'AXOW1', provider: 'AXIS', judulPaket: 'Axis Bronet Owens', namaProduk: 'Bronet 24 Jam 3GB / 30 Hari', status: 'OPEN', hargaJual: 19000, kategori: 'data' },
+
+            // TRI & SMARTFREN
+            { kode: 'T5', provider: 'TRI (3)', judulPaket: 'Pulsa Reguler Tri', namaProduk: 'Pulsa Tri 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
+            { kode: 'TH3', provider: 'TRI (3)', judulPaket: 'Tri Happy Kuota', namaProduk: 'Tri Happy 3GB / 30 Hari 24Jam', status: 'OPEN', hargaJual: 16000, kategori: 'data' },
+            { kode: 'SM5', provider: 'SMARTFREN', judulPaket: 'Pulsa Reguler Smartfren', namaProduk: 'Pulsa Smartfren 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
+            { kode: 'SMUN1', provider: 'SMARTFREN', judulPaket: 'Smartfren Unlimited', namaProduk: 'Smartfren Unlimited Nonstop 6GB / 30 Hari', status: 'OPEN', hargaJual: 33000, kategori: 'data' },
+
+            // TOPUP GAME
+            { kode: 'ML86', provider: 'TOP UP GAME', judulPaket: 'Mobile Legends Bang Bang', namaProduk: '86 Diamonds MLBB', status: 'OPEN', hargaJual: 23000, kategori: 'game' },
+            { kode: 'FF140', provider: 'TOP UP GAME', judulPaket: 'Free Fire', namaProduk: '140 Diamonds Free Fire', status: 'OPEN', hargaJual: 20000, kategori: 'game' },
+
+            // PLN & E-WALLET
+            { kode: 'PLN20', provider: 'PLN & E-WALLET', judulPaket: 'Token Listrik PLN', namaProduk: 'Token PLN 20.000', status: 'OPEN', hargaJual: 22000, kategori: 'pln' },
+            { kode: 'DANA10', provider: 'PLN & E-WALLET', judulPaket: 'Top Up E-Wallet', namaProduk: 'Saldo DANA 10.000', status: 'OPEN', hargaJual: 12500, kategori: 'pln' }
+        ];
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    phoneNumber: '',
+                    detectedProvider: '',
+                    searchQuery: '',
+                    selectedCategory: 'all',
+                    isLoading: false,
+                    lastUpdated: '',
+                    products: [],
+                    categories: [
+                        { id: 'all', name: 'Semua Produk', icon: 'fa-solid fa-grid-2' },
+                        { id: 'pulsa', name: 'Pulsa Reguler', icon: 'fa-solid fa-mobile-retro' },
+                        { id: 'data', name: 'Paket Data', icon: 'fa-solid fa-wifi' },
+                        { id: 'game', name: 'Top Up Game', icon: 'fa-solid fa-gamepad' },
+                        { id: 'pln', name: 'PLN & E-Wallet', icon: 'fa-solid fa-bolt' }
+                    ],
+                    // Database Prefix 4 Digit Provider Handphone
+                    providerPrefixes: {
+                        'TELKOMSEL': ['0811', '0812', '0813', '0821', '0822', '0823', '0851', '0852', '0853'],
+                        'INDOSAT OOREDOO': ['0814', '0815', '0816', '0855', '0856', '0857', '0858'],
+                        'XL AXIATA': ['0817', '0818', '0819', '0859', '0877', '0878'],
+                        'AXIS': ['0831', '0832', '0833', '0838'],
+                        'TRI (3)': ['0895', '0896', '0897', '0898', '0899'],
+                        'SMARTFREN': ['0881', '0882', '0883', '0884', '0885', '0886', '0887', '0888', '0889']
+                    }
+                }
+            },
+
+            computed: {
+                filteredProducts() {
+                    return this.products.filter(item => {
+                        // 1. Filter Provider jika nomor HP terisi
+                        if (this.detectedProvider) {
+                            const pName = (item.provider || '').toUpperCase();
+                            const targetP = this.detectedProvider.toUpperCase();
+                            
+                            if (targetP.includes('TELKOMSEL') && !pName.includes('TELKOMSEL')) return false;
+                            if (targetP.includes('INDOSAT') && !pName.includes('INDOSAT')) return false;
+                            if (targetP.includes('XL') && !pName.includes('XL')) return false;
+                            if (targetP.includes('AXIS') && !pName.includes('AXIS')) return false;
+                            if (targetP.includes('TRI') && !pName.includes('TRI')) return false;
+                            if (targetP.includes('SMARTFREN') && !pName.includes('SMARTFREN')) return false;
+                        }
+
+                        // 2. Filter Kategori Tab
+                        if (this.selectedCategory !== 'all') {
+                            if ((item.kategori || '').toLowerCase() !== this.selectedCategory) {
+                                return false;
+                            }
+                        }
+
+                        // 3. Filter Kata Kunci
+                        if (this.searchQuery.trim() !== '') {
+                            const q = this.searchQuery.toLowerCase();
+                            const matchKode = (item.kode || '').toLowerCase().includes(q);
+                            const matchNama = (item.namaProduk || '').toLowerCase().includes(q);
+                            const matchJudul = (item.judulPaket || '').toLowerCase().includes(q);
+                            const matchProv = (item.provider || '').toLowerCase().includes(q);
+                            return matchKode || matchNama || matchJudul || matchProv;
+                        }
+
+                        return true;
+                    });
+                },
+
+                groupedProducts() {
+                    const groups = {};
+
+                    this.filteredProducts.forEach(item => {
+                        const prov = item.provider || 'LAINNYA';
+                        const paket = item.judulPaket || 'Umum';
+
+                        if (!groups[prov]) {
+                            groups[prov] = {
+                                provider: prov,
+                                totalCount: 0,
+                                subGroupsMap: {}
+                            };
+                        }
+
+                        if (!groups[prov].subGroupsMap[paket]) {
+                            groups[prov].subGroupsMap[paket] = {
+                                judulPaket: paket,
+                                items: []
+                            };
+                        }
+
+                        groups[prov].subGroupsMap[paket].items.push(item);
+                        groups[prov].totalCount++;
+                    });
+
+                    return Object.values(groups).map(g => ({
+                        provider: g.provider,
+                        totalCount: g.totalCount,
+                        subGroups: Object.values(g.subGroupsMap)
+                    }));
+                }
+            },
+
+            mounted() {
+                this.fetchDataFromSheet();
+            },
+
+            methods: {
+                detectProvider() {
+                    const cleanNum = this.phoneNumber.replace(/[^0-9]/g, '');
+                    if (cleanNum.length >= 4) {
+                        const prefix = cleanNum.substring(0, 4);
+                        let found = '';
+
+                        for (const [prov, prefixes] of Object.entries(this.providerPrefixes)) {
+                            if (prefixes.includes(prefix)) {
+                                found = prov;
+                                break;
+                            }
+                        }
+
+                        this.detectedProvider = found;
+                    } else {
+                        this.detectedProvider = '';
+                    }
+                },
+
+                clearPhone() {
+                    this.phoneNumber = '';
+                    this.detectedProvider = '';
+                },
+
+                formatRupiah(val) {
+                    const num = parseInt(val) || 0;
+                    return 'Rp ' + num.toLocaleString('id-ID');
+                },
+
+                fetchDataFromSheet() {
+                    if (!GOOGLE_SHEET_CSV_URL) {
+                        this.products = DEFAULT_SAMPLE_PRODUCTS;
+                        this.lastUpdated = new Date().toLocaleString('id-ID');
+                        return;
+                    }
+
+                    this.isLoading = true;
+
+                    Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                        download: true,
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            this.isLoading = false;
+                            if (results.data && results.data.length > 0) {
+                                this.products = results.data.map(row => ({
+                                    kode: row.Kode || row.kode || '-',
+                                    provider: row.Provider || row.provider || 'LAINNYA',
+                                    judulPaket: row.JudulPaket || row.judulPaket || row.Paket || 'Daftar Paket',
+                                    namaProduk: row.NamaProduk || row.namaProduk || row.Produk || '-',
+                                    status: row.Status || row.status || 'OPEN',
+                                    hargaJual: parseInt(row.HargaJual || row.hargaJual || row.Harga || 0),
+                                    kategori: (row.Kategori || row.kategori || 'pulsa').toLowerCase()
+                                }));
+
+                                this.lastUpdated = new Date().toLocaleString('id-ID');
+                            }
+                        },
+                        error: (err) => {
+                            this.isLoading = false;
+                            console.error('Error fetching CSV:', err);
+                            this.products = DEFAULT_SAMPLE_PRODUCTS;
+                        }
+                    });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
