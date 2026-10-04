@@ -48,6 +48,7 @@
             color: #f8fafc;
             font-family: 'Inter', sans-serif;
         }
+        /* Custom scrollbar halus */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -62,13 +63,21 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
+        /* Hide scrollbar for category tabs on mobile */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased">
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
 
     <div id="app" class="flex-1 flex flex-col max-w-5xl w-full mx-auto p-3 sm:p-6">
         
-        <!-- Header Z-TRONIK (Khusus Pelanggan) -->
+        <!-- Header Z-TRONIK -->
         <header class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-5 shadow-xl relative overflow-hidden">
             <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
             
@@ -82,38 +91,39 @@
                             Z-TRONIK
                             <span class="bg-cyan-500/20 text-cyan-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-cyan-500/30">KATALOG ONLINE</span>
                         </h1>
-                        <p class="text-slate-400 text-xs sm:text-sm font-medium">Daftar Harga Pulsa, Paket Data & Topup Game Terupdate</p>
+                        <p class="text-slate-400 text-xs sm:text-sm font-medium whitespace-nowrap overflow-x-auto no-scrollbar">Daftar Harga Pulsa, Paket Data & Topup Game Terupdate</p>
                     </div>
                 </div>
 
-                <!-- Tombol Refresh Harga Sahaja -->
+                <!-- Tombol Refresh Harga Cepat -->
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button 
                         @click="fetchDataFromSheet" 
                         :disabled="isLoading"
-                        class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-lg shadow-cyan-600/20">
+                        class="bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition duration-150 active:scale-95 shadow-lg shadow-cyan-600/20 cursor-pointer">
                         <i class="fa-solid fa-rotate text-white" :class="{'fa-spin': isLoading}"></i>
-                        <span>{{ isLoading ? 'Memuat Data...' : 'Refresh Harga' }}</span>
+                        <span class="whitespace-nowrap">{{ isLoading ? 'Memuat Data...' : 'Refresh Harga' }}</span>
                     </button>
                 </div>
             </div>
 
             <div v-if="lastUpdated" class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                <span class="flex items-center gap-1.5">
+                <span class="flex items-center gap-1.5 whitespace-nowrap">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     Sistem Terhubung Live
                 </span>
-                <span>Terakhir diperbarui: {{ lastUpdated }}</span>
+                <span class="whitespace-nowrap">Terakhir diperbarui: {{ lastUpdated }}</span>
             </div>
         </header>
 
+        <!-- Input Filter area -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
             
             <!-- Input Nomor HP & Auto Detect Provider -->
             <div class="md:col-span-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 shadow-lg relative">
                 <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                     <span><i class="fa-solid fa-mobile-screen-button text-cyan-400 mr-1.5"></i> Masukkan Nomor HP</span>
-                    <span v-if="detectedProvider" class="text-cyan-400 font-bold bg-cyan-950/80 border border-cyan-800 px-2 py-0.5 rounded text-[10px]">
+                    <span v-if="detectedProvider" class="text-cyan-400 font-bold bg-cyan-950/80 border border-cyan-800 px-2 py-0.5 rounded text-[10px] whitespace-nowrap">
                         PROV: {{ detectedProvider }}
                     </span>
                 </label>
@@ -155,16 +165,17 @@
 
         </div>
 
-        <div class="mb-6">
-            <div class="flex flex-wrap items-center gap-2">
+        <!-- Filter Kategori (Dibuat Scroll Horizontal Memanjang di Mobile) -->
+        <div class="mb-6 overflow-x-auto no-scrollbar pb-1">
+            <div class="flex items-center gap-2 min-w-max">
                 <button 
                     v-for="cat in categories" 
                     :key="cat.id"
                     @click="selectedCategory = cat.id"
                     :class="selectedCategory === cat.id ? 'bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-600/30 border-cyan-500' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border-slate-800'"
-                    class="px-3.5 py-2 rounded-xl text-xs font-medium border transition-all duration-150 flex items-center gap-2">
+                    class="px-4 py-2 rounded-xl text-xs font-medium border transition-all duration-150 flex items-center gap-2 whitespace-nowrap cursor-pointer">
                     <i :class="cat.icon" class="text-xs"></i>
-                    <span class="whitespace-normal text-left leading-tight">{{ cat.name }}</span>
+                    <span>{{ cat.name }}</span>
                 </button>
             </div>
         </div>
@@ -172,15 +183,15 @@
         <!-- Banner Alert Provider Terdeteksi -->
         <div v-if="detectedProvider" class="mb-5 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-800/80 rounded-2xl p-3.5 flex items-center justify-between shadow-md">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold shrink-0">
                     <i class="fa-solid fa-signal text-sm"></i>
                 </div>
                 <div>
-                    <div class="text-[11px] text-cyan-300 uppercase font-semibold tracking-wider">Provider Terdeteksi</div>
-                    <div class="text-sm font-extrabold text-white">{{ detectedProvider }}</div>
+                    <div class="text-[11px] text-cyan-300 uppercase font-semibold tracking-wider whitespace-nowrap">Provider Terdeteksi</div>
+                    <div class="text-sm font-extrabold text-white whitespace-nowrap">{{ detectedProvider }}</div>
                 </div>
             </div>
-            <button @click="clearPhone" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            <button @click="clearPhone" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition whitespace-nowrap">
                 Tampilkan Semua
             </button>
         </div>
@@ -207,9 +218,9 @@
                 <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
                         <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
-                        <h2 class="font-black text-sm sm:text-base text-white tracking-wide uppercase">{{ group.provider }}</h2>
+                        <h2 class="font-black text-sm sm:text-base text-white tracking-wide uppercase whitespace-nowrap">{{ group.provider }}</h2>
                     </div>
-                    <span class="text-[11px] bg-slate-950 text-slate-400 font-mono px-2.5 py-1 rounded-full border border-slate-800">
+                    <span class="text-[11px] bg-slate-950 text-slate-400 font-mono px-2.5 py-1 rounded-full border border-slate-800 whitespace-nowrap">
                         {{ group.totalCount }} Produk
                     </span>
                 </div>
@@ -218,31 +229,34 @@
                     <!-- Judul Nama Paket di dalam Provider -->
                     <div v-for="subGroup in group.subGroups" :key="subGroup.judulPaket" class="bg-slate-950/60 rounded-xl border border-slate-800/80 overflow-hidden">
                         
-                        <div class="bg-slate-900/80 px-3.5 py-2 border-b border-slate-800/80 flex items-center justify-between">
-                            <h3 class="font-bold text-xs sm:text-sm text-cyan-300 flex items-center gap-2 whitespace-normal break-words">
+                        <!-- Header Judul Paket (Memanjang ke Kanan di Mobile) -->
+                        <div class="bg-slate-900/80 px-3.5 py-2 border-b border-slate-800/80 overflow-x-auto no-scrollbar">
+                            <h3 class="font-bold text-xs sm:text-sm text-cyan-300 flex items-center gap-2 whitespace-nowrap">
                                 <i class="fa-solid fa-layer-group text-cyan-500 text-xs"></i>
                                 <span>{{ subGroup.judulPaket }}</span>
                             </h3>
                         </div>
 
+                        <!-- Table Scroll Horizontal (Teks Memanjang, Tidak Patah Kebawah) -->
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
+                            <table class="w-full text-left border-collapse min-w-max">
                                 <thead>
                                     <tr class="border-b border-slate-800/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-900/30">
-                                        <th class="py-2.5 px-3 w-20 sm:w-24">Kode</th>
-                                        <th class="py-2.5 px-3">Nama Produk</th>
-                                        <th class="py-2.5 px-3 w-24 text-center">Status</th>
-                                        <th class="py-2.5 px-3 w-28 sm:w-32 text-right">Harga Jual</th>
+                                        <th class="py-2.5 px-3 whitespace-nowrap">Kode</th>
+                                        <th class="py-2.5 px-3 whitespace-nowrap">Nama Produk</th>
+                                        <th class="py-2.5 px-3 whitespace-nowrap text-center">Status</th>
+                                        <th class="py-2.5 px-3 whitespace-nowrap text-right">Harga Jual</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-800/50 text-xs sm:text-sm">
                                     <tr v-for="item in subGroup.items" :key="item.kode" class="hover:bg-slate-800/30 transition">
+                                        <!-- Kode Produk -->
                                         <td class="py-2.5 px-3 font-mono font-bold text-slate-300 text-xs whitespace-nowrap">
                                             {{ item.kode }}
                                         </td>
                                         
-                                        <!-- Nama Produk (Teks Penuh, Tidak Terpotong) -->
-                                        <td class="py-2.5 px-3 text-slate-100 font-medium whitespace-normal break-words leading-snug">
+                                        <!-- Nama Produk (Teks Memanjang Ke Kanan, Tidak Lanjut Ke Bawah) -->
+                                        <td class="py-2.5 px-3 text-slate-100 font-medium whitespace-nowrap">
                                             {{ item.namaProduk }}
                                         </td>
 
@@ -262,7 +276,7 @@
                                             </span>
                                         </td>
 
-                                        <!-- Harga Jual -->
+                                        <!-- Harga Jual (Formatted Dengan Titik) -->
                                         <td class="py-2.5 px-3 text-right font-extrabold text-cyan-400 font-mono whitespace-nowrap">
                                             {{ formatRupiah(item.hargaJual) }}
                                         </td>
@@ -278,7 +292,7 @@
 
         </main>
 
-        <!-- Footer Footer Z-TRONIK -->
+        <!-- Footer Z-TRONIK -->
         <footer class="mt-8 pt-4 border-t border-slate-900 text-center text-xs text-slate-500 space-y-1">
             <p class="font-bold text-slate-400">Z-TRONIK — Digital Print</p>
             <p>Harga & Status dapat berubah sewaktu-waktu.</p>
@@ -287,46 +301,39 @@
     </div>
 
     <script>
-        // TEMPATKAN LINK GOOGLE SHEET CSV ANDA DI BAWAH INI JIKA SUDAH DIPUBLIKASIKAN
-        // Contoh: 'https://docs.google.com/spreadsheets/d/e/2PACX-1v.../pub?output=csv'
+        // LINK GOOGLE SHEET CSV PUBLISHED
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSkQnChUO_agW4OQfm4fTA7hNE6tU1uPZEhEp8Y3LD0b1spjhxHXg3kkC1WbSj58V2E-8nqHduihwU-/pub?output=csv'; 
 
-        // Sample Data Bawaan jika belum ada link Google Sheet
+        // Sample Data Bawaan jika belum terhubung
         const DEFAULT_SAMPLE_PRODUCTS = [
-            // TELKOMSEL
-            { kode: 'S5', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
-            { kode: 'S10', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 10.000', status: 'OPEN', hargaJual: 12000, kategori: 'pulsa' },
-            { kode: 'S25', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 25.000', status: 'OPEN', hargaJual: 27000, kategori: 'pulsa' },
-            { kode: 'S50', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 50.000', status: 'OPEN', hargaJual: 52000, kategori: 'pulsa' },
-            { kode: 'TS1', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 3GB / 30 Hari', status: 'OPEN', hargaJual: 22000, kategori: 'data' },
-            { kode: 'TS2', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 7GB / 30 Hari', status: 'OPEN', hargaJual: 38000, kategori: 'data' },
-            { kode: 'TS3', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 15GB / 30 Hari', status: 'GANGGUAN', hargaJual: 58000, kategori: 'data' },
+            { kode: 'S5', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 5.000', status: 'OPEN', hargaJual: '7.000', kategori: 'pulsa' },
+            { kode: 'S10', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 10.000', status: 'OPEN', hargaJual: '12.000', kategori: 'pulsa' },
+            { kode: 'S25', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 25.000', status: 'OPEN', hargaJual: '27.000', kategori: 'pulsa' },
+            { kode: 'S50', provider: 'TELKOMSEL', judulPaket: 'Pulsa Reguler Telkomsel', namaProduk: 'Pulsa Telkomsel 50.000', status: 'OPEN', hargaJual: '52.000', kategori: 'pulsa' },
+            { kode: 'TS1', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 3GB / 30 Hari Extra Kuota Utama', status: 'OPEN', hargaJual: '22.000', kategori: 'data' },
+            { kode: 'TS2', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 7GB / 30 Hari Extra Kuota Utama', status: 'OPEN', hargaJual: '38.000', kategori: 'data' },
+            { kode: 'TS3', provider: 'TELKOMSEL', judulPaket: 'Internet Max Telkomsel', namaProduk: 'Internet Max 15GB / 30 Hari Extra Kuota Utama', status: 'GANGGUAN', hargaJual: '58.000', kategori: 'data' },
 
-            // INDOSAT
-            { kode: 'I5', provider: 'INDOSAT OOREDOO', judulPaket: 'Pulsa Reguler Indosat', namaProduk: 'Pulsa Indosat 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
-            { kode: 'I10', provider: 'INDOSAT OOREDOO', judulPaket: 'Pulsa Reguler Indosat', namaProduk: 'Pulsa Indosat 10.000', status: 'OPEN', hargaJual: 12000, kategori: 'pulsa' },
-            { kode: 'FID3', provider: 'INDOSAT OOREDOO', judulPaket: 'Freedom Internet Indosat', namaProduk: 'Freedom Internet 3GB / 30 Hari Full Kuota', status: 'OPEN', hargaJual: 18000, kategori: 'data' },
-            { kode: 'FID7', provider: 'INDOSAT OOREDOO', judulPaket: 'Freedom Internet Indosat', namaProduk: 'Freedom Internet 7GB / 30 Hari Full Kuota', status: 'OPEN', hargaJual: 31000, kategori: 'data' },
+            { kode: 'I5', provider: 'INDOSAT OOREDOO', judulPaket: 'Pulsa Reguler Indosat', namaProduk: 'Pulsa Indosat 5.000', status: 'OPEN', hargaJual: '7.000', kategori: 'pulsa' },
+            { kode: 'I10', provider: 'INDOSAT OOREDOO', judulPaket: 'Pulsa Reguler Indosat', namaProduk: 'Pulsa Indosat 10.000', status: 'OPEN', hargaJual: '12.000', kategori: 'pulsa' },
+            { kode: 'FID3', provider: 'INDOSAT OOREDOO', judulPaket: 'Freedom Internet Indosat', namaProduk: 'Freedom Internet 3GB / 30 Hari Full Kuota Utama 24 Jam', status: 'OPEN', hargaJual: '18.000', kategori: 'data' },
+            { kode: 'FID7', provider: 'INDOSAT OOREDOO', judulPaket: 'Freedom Internet Indosat', namaProduk: 'Freedom Internet 7GB / 30 Hari Full Kuota Utama 24 Jam', status: 'OPEN', hargaJual: '31.000', kategori: 'data' },
 
-            // XL & AXIS
-            { kode: 'X5', provider: 'XL AXIATA', judulPaket: 'Pulsa Reguler XL', namaProduk: 'Pulsa XL 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
-            { kode: 'X10', provider: 'XL AXIATA', judulPaket: 'Pulsa Reguler XL', namaProduk: 'Pulsa XL 10.000', status: 'OPEN', hargaJual: 12000, kategori: 'pulsa' },
-            { kode: 'AX5', provider: 'AXIS', judulPaket: 'Pulsa Reguler Axis', namaProduk: 'Pulsa Axis 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
-            { kode: 'AXOW1', provider: 'AXIS', judulPaket: 'Axis Bronet Owens', namaProduk: 'Bronet 24 Jam 3GB / 30 Hari', status: 'OPEN', hargaJual: 19000, kategori: 'data' },
+            { kode: 'X5', provider: 'XL AXIATA', judulPaket: 'Pulsa Reguler XL', namaProduk: 'Pulsa XL 5.000', status: 'OPEN', hargaJual: '7.000', kategori: 'pulsa' },
+            { kode: 'X10', provider: 'XL AXIATA', judulPaket: 'Pulsa Reguler XL', namaProduk: 'Pulsa XL 10.000', status: 'OPEN', hargaJual: '12.000', kategori: 'pulsa' },
+            { kode: 'AX5', provider: 'AXIS', judulPaket: 'Pulsa Reguler Axis', namaProduk: 'Pulsa Axis 5.000', status: 'OPEN', hargaJual: '7.000', kategori: 'pulsa' },
+            { kode: 'AXOW1', provider: 'AXIS', judulPaket: 'Axis Bronet Owens', namaProduk: 'Bronet 24 Jam 3GB / 30 Hari Kuota Nasional', status: 'OPEN', hargaJual: '19.000', kategori: 'data' },
 
-            // TRI & SMARTFREN
-            { kode: 'T5', provider: 'TRI (3)', judulPaket: 'Pulsa Reguler Tri', namaProduk: 'Pulsa Tri 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
-            { kode: 'TH3', provider: 'TRI (3)', judulPaket: 'Tri Happy Kuota', namaProduk: 'Tri Happy 3GB / 30 Hari 24Jam', status: 'OPEN', hargaJual: 16000, kategori: 'data' },
-            { kode: 'SM5', provider: 'SMARTFREN', judulPaket: 'Pulsa Reguler Smartfren', namaProduk: 'Pulsa Smartfren 5.000', status: 'OPEN', hargaJual: 7000, kategori: 'pulsa' },
-            { kode: 'SMUN1', provider: 'SMARTFREN', judulPaket: 'Smartfren Unlimited', namaProduk: 'Smartfren Unlimited Nonstop 6GB / 30 Hari', status: 'OPEN', hargaJual: 33000, kategori: 'data' },
+            { kode: 'T5', provider: 'TRI (3)', judulPaket: 'Pulsa Reguler Tri', namaProduk: 'Pulsa Tri 5.000', status: 'OPEN', hargaJual: '7.000', kategori: 'pulsa' },
+            { kode: 'TH3', provider: 'TRI (3)', judulPaket: 'Tri Happy Kuota', namaProduk: 'Tri Happy 3GB / 30 Hari 24Jam Anti Hangus', status: 'OPEN', hargaJual: '16.000', kategori: 'data' },
+            { kode: 'SM5', provider: 'SMARTFREN', judulPaket: 'Pulsa Reguler Smartfren', namaProduk: 'Pulsa Smartfren 5.000', status: 'OPEN', hargaJual: '7.000', kategori: 'pulsa' },
+            { kode: 'SMUN1', provider: 'SMARTFREN', judulPaket: 'Smartfren Unlimited', namaProduk: 'Smartfren Unlimited Nonstop 6GB / 30 Hari', status: 'OPEN', hargaJual: '33.000', kategori: 'data' },
 
-            // TOPUP GAME
-            { kode: 'ML86', provider: 'TOP UP GAME', judulPaket: 'Mobile Legends Bang Bang', namaProduk: '86 Diamonds MLBB', status: 'OPEN', hargaJual: 23000, kategori: 'game' },
-            { kode: 'FF140', provider: 'TOP UP GAME', judulPaket: 'Free Fire', namaProduk: '140 Diamonds Free Fire', status: 'OPEN', hargaJual: 20000, kategori: 'game' },
+            { kode: 'ML86', provider: 'TOP UP GAME', judulPaket: 'Mobile Legends Bang Bang', namaProduk: '86 Diamonds MLBB Fast Flash Instant', status: 'OPEN', hargaJual: '23.000', kategori: 'game' },
+            { kode: 'FF140', provider: 'TOP UP GAME', judulPaket: 'Free Fire', namaProduk: '140 Diamonds Free Fire Direct ID', status: 'OPEN', hargaJual: '20.000', kategori: 'game' },
 
-            // PLN & E-WALLET
-            { kode: 'PLN20', provider: 'PLN & E-WALLET', judulPaket: 'Token Listrik PLN', namaProduk: 'Token PLN 20.000', status: 'OPEN', hargaJual: 22000, kategori: 'pln' },
-            { kode: 'DANA10', provider: 'PLN & E-WALLET', judulPaket: 'Top Up E-Wallet', namaProduk: 'Saldo DANA 10.000', status: 'OPEN', hargaJual: 12500, kategori: 'pln' }
+            { kode: 'PLN20', provider: 'PLN & E-WALLET', judulPaket: 'Token Listrik PLN', namaProduk: 'Token PLN Prepaid 20.000', status: 'OPEN', hargaJual: '22.000', kategori: 'pln' },
+            { kode: 'DANA10', provider: 'PLN & E-WALLET', judulPaket: 'Top Up E-Wallet', namaProduk: 'Saldo DANA 10.000 Instant Injected', status: 'OPEN', hargaJual: '12.500', kategori: 'pln' }
         ];
 
         const { createApp } = Vue;
@@ -348,7 +355,6 @@
                         { id: 'game', name: 'Top Up Game', icon: 'fa-solid fa-gamepad' },
                         { id: 'pln', name: 'PLN & E-Wallet', icon: 'fa-solid fa-bolt' }
                     ],
-                    // Database Prefix 4 Digit Provider Handphone
                     providerPrefixes: {
                         'TELKOMSEL': ['0811', '0812', '0813', '0821', '0822', '0823', '0851', '0852', '0853'],
                         'INDOSAT OOREDOO': ['0814', '0815', '0816', '0855', '0856', '0857', '0858'],
@@ -363,7 +369,7 @@
             computed: {
                 filteredProducts() {
                     return this.products.filter(item => {
-                        // 1. Filter Provider jika nomor HP terisi
+                        // 1. Filter Provider
                         if (this.detectedProvider) {
                             const pName = (item.provider || '').toUpperCase();
                             const targetP = this.detectedProvider.toUpperCase();
@@ -376,14 +382,14 @@
                             if (targetP.includes('SMARTFREN') && !pName.includes('SMARTFREN')) return false;
                         }
 
-                        // 2. Filter Kategori Tab
+                        // 2. Filter Kategori
                         if (this.selectedCategory !== 'all') {
                             if ((item.kategori || '').toLowerCase() !== this.selectedCategory) {
                                 return false;
                             }
                         }
 
-                        // 3. Filter Kata Kunci
+                        // 3. Filter Pencarian
                         if (this.searchQuery.trim() !== '') {
                             const q = this.searchQuery.toLowerCase();
                             const matchKode = (item.kode || '').toLowerCase().includes(q);
@@ -460,21 +466,34 @@
                     this.detectedProvider = '';
                 },
 
+                // Menangani angka baik format "15.000", "15000", maupun number biasa
+                cleanNumber(val) {
+                    if (val === null || val === undefined || val === '') return 0;
+                    if (typeof val === 'number') return val;
+                    
+                    // Hapus karakter non-digit (termasuk titik & koma)
+                    const sanitized = String(val).replace(/[^0-9]/g, '');
+                    return parseInt(sanitized, 10) || 0;
+                },
+
                 formatRupiah(val) {
-                    const num = parseInt(val) || 0;
+                    const num = this.cleanNumber(val);
                     return 'Rp ' + num.toLocaleString('id-ID');
                 },
 
                 fetchDataFromSheet() {
                     if (!GOOGLE_SHEET_CSV_URL) {
                         this.products = DEFAULT_SAMPLE_PRODUCTS;
-                        this.lastUpdated = new Date().toLocaleString('id-ID');
+                        this.lastUpdated = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                         return;
                     }
 
                     this.isLoading = true;
 
-                    Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                    // Tambahkan Cache-Buster agar Refresh Instan/Sangat Cepat tanpa delay Cache browser
+                    const cacheBusterUrl = GOOGLE_SHEET_CSV_URL + (GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?') + '_cb=' + new Date().getTime();
+
+                    Papa.parse(cacheBusterUrl, {
                         download: true,
                         header: true,
                         skipEmptyLines: true,
@@ -487,17 +506,21 @@
                                     judulPaket: row.JudulPaket || row.judulPaket || row.Paket || 'Daftar Paket',
                                     namaProduk: row.NamaProduk || row.namaProduk || row.Produk || '-',
                                     status: row.Status || row.status || 'OPEN',
-                                    hargaJual: parseInt(row.HargaJual || row.hargaJual || row.Harga || 0),
+                                    hargaJual: row.HargaJual || row.hargaJual || row.Harga || 0,
                                     kategori: (row.Kategori || row.kategori || 'pulsa').toLowerCase()
                                 }));
 
-                                this.lastUpdated = new Date().toLocaleString('id-ID');
+                                const now = new Date();
+                                this.lastUpdated = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID');
                             }
                         },
                         error: (err) => {
                             this.isLoading = false;
                             console.error('Error fetching CSV:', err);
-                            this.products = DEFAULT_SAMPLE_PRODUCTS;
+                            // Fallback jika terjadi error koneksi
+                            if(this.products.length === 0) {
+                                this.products = DEFAULT_SAMPLE_PRODUCTS;
+                            }
                         }
                     });
                 }
